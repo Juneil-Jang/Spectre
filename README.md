@@ -55,28 +55,28 @@ You need two CSV files in the metadata folder:
 
 1. sample.details.csv (Must contain these columns):
 
-FileName: Exact name of the .fcs file (e.g., Sample_01.fcs).
+  FileName: Exact name of the .fcs file (e.g., Sample_01.fcs).
 
-Sample: Unique sample ID.
+  Sample: Unique sample ID.
 
-Group: Experimental group (e.g., Mock, Treated).
+  Group: Experimental group (e.g., Mock, Treated).
 
-Batch: Batch number (e.g., 1, 2).
+  Batch: Batch number (e.g., 1, 2).
 
-Donor: Donor ID (optional).
+  Donor: Donor ID (optional).
 
 2. ORIGINAL MARKERS.csv (Must contain these columns):
 
-Channel: The machine channel name (e.g., FJComp-APC-A).
+  Channel: The machine channel name (e.g., FJComp-APC-A).
 
-Marker: The biological name you want to use (e.g., CD3, CD45RA).
+  Marker: The biological name you want to use (e.g., CD3, CD45RA).
 
 ---
 
 ### Step 3: Configure wrapper.R
 Open your copy of wrapper.R in RStudio and modify only the [REQUIRED SETTINGS] section:
 
-# --- Example Configuration ---
+ --- Example Configuration ---
 1. Where did you save the pipeline code?
 pipeline_path <- "C:/Pipelines/My-FACS-Pipeline"
 
@@ -90,21 +90,25 @@ ref_samples <- c("BatchCtrl_Run1", "BatchCtrl_Run2") # Or set to NULL if no refs
 ---
 
 ### Step 4: Run!
-Click the [Source] button in RStudio. Sit back and relax ☕. The script will automatically create a new timestamped folder (Output_Result_YYYY-MM-DD_HH-MM).
+Click the [Source] button in RStudio. Sit back and relax ☕. 
+The script will automatically create a new timestamped folder (Output_Result_YYYY-MM-DD_HH-MM).
 
 ---
 
-📊 Understanding the Output
+## 📊 Understanding the Output
+
 Go to your output folder. You will see 3 main sub-folders and essential summary files:
 
-📂 1 - data prep
+> 📂 1 - data prep
+
 cell.dat.csv: The raw data combined and transformed (arcsinh).
 
 Marker Plots: PNG images showing the expression of every marker before batch correction.
 
 ---
 
-📂 2 - batch alignment
+> 📂 2 - batch alignment
+
 Pre_Aligned_*.png: UMAPs showing your data before correction.
 
 Post_Aligned_*.png: UMAPs showing your data after correction (Batches should now overlap).
@@ -113,7 +117,8 @@ cell.dat_allAligned.csv: The full dataset after batch correction.
 
 ---
 
-📂 3 - clustering and DR_fastPG
+> 📂 3 - clustering and DR_fastPG
+
 🌟 cell.dat_Clustered.csv: The master file containing all cells, marker values, and Cluster IDs.
 
 Heatmap_Znorm.png: A heatmap summarizing what markers each cluster expresses.
@@ -126,7 +131,8 @@ Clustered_*.fcs: FCS files containing cluster IDs (can be opened in FlowJo).
 
 ---
 
-📄 Main Folder Files
+> 📄 Main Folder Files
+
 📝 analysis_log.txt: Your automated Lab Notebook recording all run details.
 
 📈 sum.dat_fastPGk=30.csv: Summary table showing the percentage and count of each cluster per sample.
@@ -154,4 +160,4 @@ You are likely using R 3.6 or 4.0. Please install R 4.1.0 or newer to ensure the
 If you have >10 million cells, try increasing the <code>subsample_size</code> in the wrapper or ask for server access.
 </details>
 
-Maintained by: [Your Name / Lab Name]
+Maintained by: [Juneil Jang / Su Lab]
