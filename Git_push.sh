@@ -17,8 +17,7 @@ fi
 
 # 3. 확정 및 업로드
 git commit -m "$msg"
-git branch -M main
-git push -u origin main
+git push origin main
 
 echo ""
 echo "========================================"
