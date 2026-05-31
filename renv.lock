@@ -1,0 +1,124 @@
+{
+  "R": {
+    "Version": "4.0.0",
+    "Repositories": [
+      {
+        "Name": "CRAN",
+        "URL": "https://cloud.r-project.org"
+      }
+    ]
+  },
+  "Packages": {
+    "CytoNorm": {
+      "Package": "CytoNorm",
+      "Version": "2.0.9",
+      "Source": "GitHub",
+      "Type": "Package",
+      "Title": "Normalisation of cytometry data measured across multiple batches",
+      "Depends": [
+        "R (>= 3.5)"
+      ],
+      "Imports": [
+        "flowCore",
+        "FlowSOM",
+        "emdist",
+        "dplyr",
+        "stringr",
+        "pheatmap",
+        "ggplot2 (>= 3.5.1)",
+        "ggpubr",
+        "methods",
+        "gridExtra",
+        "ggridges",
+        "tidyr"
+      ],
+      "License": "GPL (>= 2)",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteRepo": "CytoNorm",
+      "RemoteUsername": "saeyslab",
+      "RemoteRef": "b1046ac76d4873acdcc82e92003e8eb919ebdd01",
+      "RemoteSha": "b1046ac76d4873acdcc82e92003e8eb919ebdd01",
+      "NeedsCompilation": "no"
+    },
+    "FastPG": {
+      "Package": "FastPG",
+      "Version": "0.0.8",
+      "Source": "GitHub",
+      "Title": "Fast PhenoGraph-like clustering",
+      "Depends": [
+        "R (>= 4.0)"
+      ],
+      "Imports": [
+        "Rcpp (>= 1.0.3)",
+        "RcppParallel (>= 4.4.4)",
+        "flowCore",
+        "checkmate",
+        "RcppHNSW"
+      ],
+      "LinkingTo": [
+        "Rcpp",
+        "RcppParallel",
+        "BH"
+      ],
+      "License": "MIT + file LICENSE",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteRepo": "FastPG",
+      "RemoteUsername": "sararselitsky",
+      "RemoteRef": "44c9282fdd3de97e8e98a7c9165b7cc67d130e1a",
+      "RemoteSha": "44c9282fdd3de97e8e98a7c9165b7cc67d130e1a",
+      "NeedsCompilation": "yes"
+    },
+    "Spectre": {
+      "Package": "Spectre",
+      "Version": "1.3.0",
+      "Source": "GitHub",
+      "Type": "Package",
+      "Title": "High-dimensional cytometry and imaging analysis",
+      "Depends": [
+        "R (>= 3.6.0)"
+      ],
+      "Imports": [
+        "colorRamps",
+        "data.table",
+        "dendsort",
+        "factoextra",
+        "flowCore",
+        "FlowSOM",
+        "fs",
+        "ggplot2",
+        "ggpointdensity",
+        "ggpubr",
+        "ggrepel",
+        "ggthemes",
+        "gridExtra",
+        "gtools",
+        "irlba",
+        "lifecycle",
+        "parallel",
+        "patchwork",
+        "pheatmap",
+        "RColorBrewer",
+        "rstudioapi",
+        "rsvd",
+        "Rtsne",
+        "scales",
+        "scattermore",
+        "umap",
+        "uwot",
+        "viridis"
+      ],
+      "Remotes": "saeyslab/CytoNorm, JinmiaoChenLab/Rphenograph",
+      "License": "MIT + file LICENSE",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteRepo": "Spectre",
+      "RemoteUsername": "immunedynamics",
+      "RemotePkgRef": "immunedynamics/Spectre",
+      "RemoteRef": "159dc9f6d700b0dbd9fed8677cd94521c661691e",
+      "RemoteSha": "159dc9f6d700b0dbd9fed8677cd94521c661691e",
+      "NeedsCompilation": "no"
+    }
+  }
+}
