@@ -1,0 +1,9 @@
+FileName,Sample,Group,Batch,Donor,Cells per sample
+export_1-0120 V4 ON_cd4.fcs,1-0120 V4,ON,1,1-0120,500
+export_1-0120 V5 OFF_cd4.fcs,1-0120 V5,OFF,1,1-0120,500
+export_2-0051 V8 ON_cd4.fcs,2-0051 V8,ON,1,2-0051,500
+export_2-0051 V10 ON_cd4.fcs,2-0051 V10,ON,1,2-0051,500
+export_2-0051 V11 ON_cd4.fcs,2-0051 V11,ON,1,2-0051,500
+export_2-0051 V12 OFF_cd4.fcs,2-0051 V12,OFF,1,2-0051,500
+export_2-0051 V13 OFF_cd4.fcs,2-0051 V13,OFF,1,2-0051,500
+export_2-0051 V15 OFF_cd4.fcs,2-0051 V15,OFF,1,2-0051,500

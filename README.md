@@ -1,228 +1,361 @@
 # Spectre Cytometry Analysis Pipeline
 
-이 repository는 FCS 기반 cytometry 데이터를 Spectre, FastPG, CytoNorm으로 분석하기 위한 R pipeline입니다. Wetlab 사용자는 `Spectre_wrapper_Anjali2.R`의 `SETTINGS` 블록만 수정한 뒤 실행하면 됩니다.
+This repository contains a wet-lab friendly R pipeline for high-dimensional cytometry analysis using Spectre, FastPG, and CytoNorm.
 
-지원하는 분석 방식은 세 가지입니다.
+The main entry point is:
 
-- Batch control이 있는 경우: 지정한 control sample로 CytoNorm model을 학습합니다.
-- Batch control이 없는 경우: 전체 sample을 이용해 CytoNorm alignment를 수행합니다.
-- Batch alignment를 하지 않는 경우: arcsinh-transformed marker를 바로 clustering합니다.
+```r
+source("Spectre_wrapper.R")
+```
 
-R 환경은 R 4.0부터 R 4.5까지 사용할 수 있도록 구성했습니다. 전체 dependency tree를 하나의 R minor version에 고정하지 않고, 핵심 분석 package인 `Spectre`, `FastPG`, `CytoNorm`만 GitHub SHA로 고정합니다.
+Open `Spectre_wrapper.R` in RStudio, edit only the `SETTINGS` block, and click **Source**.
 
-## Quick Start
+## What This Pipeline Does
 
-1. RStudio에서 `JJ_R_Env.Rproj`를 엽니다.
-2. FCS 파일을 `data/` 폴더에 넣습니다.
-3. Metadata 파일을 `metadata/` 폴더에 넣습니다.
-4. `Spectre_wrapper_Anjali2.R`의 `SETTINGS` 블록만 수정합니다.
-5. R console에서 아래 순서대로 실행합니다.
+- Imports `.fcs` files.
+- Adds sample metadata from `sample.details.csv`.
+- Renames instrument channels using `ORIGINAL MARKERS.csv`.
+- Applies arcsinh transformation.
+- Optionally performs CytoNorm batch alignment.
+- Runs FastPG clustering.
+- Generates UMAPs, heatmaps, summary tables, cluster proportions, and optional clustered FCS exports.
+
+## Repository Layout
+
+```text
+Spectre/
+  Spectre_wrapper.R              # Main user-facing wrapper
+  README.md                      # This manual
+  renv.lock                      # Minimal core-pinned renv lockfile
+  scripts/                       # Active scripts only
+    run_spectre_unified.R
+    help_functions.R
+    setup_renv_core.R
+    restore_renv_core_safe.R
+    check_renv_core.R
+    create_test_data.R
+    smoke_test_example_data.R
+  example_data/                  # Small random-sampled test dataset
+    data/
+    metadata/
+  legacy/                        # Archived old scripts, not used for new runs
+```
+
+Your real experiment files should go in local `data/` and `metadata/` folders. These folders are ignored by Git so large or private experiment data are not uploaded accidentally.
+
+## 1. Install R and RStudio
+
+### Windows
+
+1. Install R 4.x from CRAN: <https://cloud.r-project.org/>
+2. Install RStudio Desktop: <https://posit.co/download/rstudio-desktop/>
+3. Install Rtools matching your R version if package compilation is needed:
+   <https://cran.r-project.org/bin/windows/Rtools/>
+4. Restart Windows after installing R/Rtools if RStudio cannot find the compiler.
+
+### macOS
+
+1. Install R 4.x from CRAN: <https://cloud.r-project.org/>
+2. Install RStudio Desktop: <https://posit.co/download/rstudio-desktop/>
+3. Install Apple Command Line Tools:
+
+```bash
+xcode-select --install
+```
+
+4. If R package compilation fails on macOS, install the CRAN-recommended Fortran toolchain for your R version from:
+   <https://mac.r-project.org/tools/>
+
+## 2. Open the Project
+
+Open `JJ_R_Env.Rproj` in RStudio. Opening the project file is recommended because it sets the working directory correctly on both Windows and macOS.
+
+If RStudio asks whether to activate `renv`, allow it.
+
+## 3. Set Up the R Environment
+
+This project supports R 4.0 through R 4.5 by pinning only the core analysis packages and letting each R minor version use its compatible CRAN/Bioconductor repositories.
+
+Run this once in the RStudio Console:
 
 ```r
 source("scripts/setup_renv_core.R")
 source("scripts/check_renv_core.R")
-source("Spectre_wrapper_Anjali2.R")
 ```
 
-이미 package 설치가 되어 있고 project library만 복원하고 싶다면 raw `renv::restore()` 대신 아래 wrapper를 사용하세요.
+If you need to restore the project later, prefer this safe wrapper instead of raw `renv::restore()`:
 
 ```r
 source("scripts/restore_renv_core_safe.R")
 ```
 
-이 safe restore wrapper는 이 project 안의 `renv/library/...`에만 restore합니다. `clean = FALSE`를 사용하므로 사용자의 원래 R user library를 삭제하거나 prune하지 않습니다.
+The safe restore uses the project-local renv library and `clean = FALSE`, so it does not prune or delete packages from your normal user R library.
 
-## Input 파일 준비
+### Core pinned packages
 
-아래 구조로 파일을 준비합니다.
+| Package | GitHub SHA |
+| --- | --- |
+| Spectre | `159dc9f6d700b0dbd9fed8677cd94521c661691e` |
+| FastPG | `44c9282fdd3de97e8e98a7c9165b7cc67d130e1a` |
+| CytoNorm | `b1046ac76d4873acdcc82e92003e8eb919ebdd01` |
+
+## 4. Try the Bundled Example Dataset
+
+A small random-sampled test dataset is included under `example_data/`.
+
+Option A: use the wrapper.
+
+1. Open `Spectre_wrapper.R`.
+2. Set:
+
+```r
+use_example_data <- TRUE
+```
+
+3. Click **Source**.
+
+Option B: run the smoke test script.
+
+```r
+source("scripts/smoke_test_example_data.R")
+```
+
+Example outputs are written to `example_results/` or `example_results_smoke/`. These folders are ignored by Git.
+
+## 5. Prepare Your Own Data
+
+Create this folder structure:
 
 ```text
 Spectre/
   data/
-    sample_001.fcs
-    sample_002.fcs
-    ORIGINAL MARKERS.csv
+    Sample_01.fcs
+    Sample_02.fcs
   metadata/
     sample.details.csv
+    ORIGINAL MARKERS.csv
 ```
 
-`sample.details.csv`에는 최소한 아래 column이 있어야 합니다.
+The pipeline also accepts `ORIGINAL MARKERS.csv` inside `data/` for backward compatibility, but `metadata/` is recommended.
 
-- `FileName`: `.fcs` 확장자를 제외한 FCS filename 또는 Spectre가 읽는 embedded filename.
-- `Sample`: sample ID.
-- `Group`: experimental group.
-- `Batch`: batch/run ID.
-- `Donor`: donor ID.
+### sample.details.csv
 
-`ORIGINAL MARKERS.csv`에는 최소한 두 column이 있어야 합니다.
+Required columns:
 
-- 첫 번째 column: instrument/channel name.
-- 두 번째 column: 분석에 사용할 marker name.
+| Column | Meaning |
+| --- | --- |
+| `FileName` | Exact FCS filename, including `.fcs` |
+| `Sample` | Sample name used in plots and summaries |
+| `Group` | Experimental group, such as `Control` or `Treatment` |
+| `Batch` | Batch, run, or acquisition ID |
+| `Donor` | Donor or subject ID |
 
-분석 결과는 `Output 1 - Data Prep`, `Output 2 - Batch Alignment`, `Output 3 - Clustering_k...` 폴더에 저장됩니다. 이 결과 폴더들은 GitHub에 올리지 않습니다.
+Optional but recommended:
 
-## Wrapper 설정법
+| Column | Meaning |
+| --- | --- |
+| `Cells per sample` | Original or sampled cell count |
 
-`Spectre_wrapper_Anjali2.R`를 열고 `settings <- list(...)` 부분만 수정합니다.
+### ORIGINAL MARKERS.csv
 
-기본 분석 설정:
+This file needs at least two columns:
+
+| Column position | Meaning |
+| --- | --- |
+| First column | Instrument/channel name from the FCS file |
+| Second column | Clean marker name to use in analysis |
+
+Example:
+
+```csv
+Channel name,markers
+BUV395-A_CD3,CD3
+BUV661-A_CD4,CD4
+BV570-A_CD45RO,CD45RO
+```
+
+## 6. Run a Real Analysis
+
+1. Put FCS files in `data/`.
+2. Put `sample.details.csv` and `ORIGINAL MARKERS.csv` in `metadata/`.
+3. Open `Spectre_wrapper.R`.
+4. Keep:
+
+```r
+use_example_data <- FALSE
+```
+
+5. Edit only the `settings <- list(...)` section.
+6. Click **Source** in RStudio.
+
+## 7. Important Wrapper Settings
+
+### Core settings
 
 ```r
 phenok = 100
-flow_type = "aurora"   # cytof, aurora, or flow
+flow_type = "aurora"
 cofactor = 2000
+random_seed = 42
 umap_cells = 100000
 ```
 
-Batch alignment를 하지 않을 때:
+Common cofactors:
+
+| Data type | Typical cofactor |
+| --- | --- |
+| CyTOF | `5` |
+| Aurora / spectral flow | `2000` |
+| Conventional flow | `200` |
+
+### Batch alignment
+
+No batch alignment:
 
 ```r
 batch_align = FALSE
 batch_controls = character(0)
 ```
 
-Batch control sample이 있을 때:
+Batch alignment with control samples:
 
 ```r
 batch_align = TRUE
-batch_controls = c("control_sample_1", "control_sample_2")
+batch_controls = c("BatchCtrl_1", "BatchCtrl_2")
 ```
 
-Batch control sample은 없지만 전체 sample로 CytoNorm alignment를 하고 싶을 때:
+Batch alignment without controls, using all samples:
 
 ```r
 batch_align = TRUE
 batch_controls = character(0)
 ```
 
-Optional gating/filtering:
+### Optional filters
+
+Use exact column names after transformation. For names containing spaces or symbols, wrap the column name in backticks.
 
 ```r
 analysis_filters = c(
-  "CD3_asinh > 1.0",
-  "`LIVE DEAD NIR-A_LiveDead_asinh` < 2.0",
+  "CD3_asinh > 1",
   "`FSC-H` > `FSC-A` * 0.85 & `FSC-H` < `FSC-A` * 1.15"
 )
 ```
 
-Sample별 cell 수를 맞춰 downsampling하고 싶을 때:
+### Equal downsampling across samples
 
 ```r
 balance_samples = TRUE
-cells_per_sample = NULL  # 가장 cell 수가 적은 sample 기준으로 맞춤
+cells_per_sample = NULL
 ```
 
-Clustering에 사용할 marker를 제한하고 싶을 때:
+`NULL` uses the smallest sample size after filtering.
+
+### Marker subset for clustering
+
+Use all transformed/aligned markers:
 
 ```r
 clustering_markers = NULL
-
-# 또는 marker name / transformed column name 지정
-clustering_markers = c("CD3", "CD4", "CD8")
 ```
 
-## R 4.x renv 정책
+Use selected markers:
 
-기존 full `renv.lock`은 R 4.4.1과 Bioconductor 3.19에 묶여 있어서, 다른 R 4.x minor version에서 `BiocVersion`/`BiocManager` 충돌로 `renv::restore()`가 실패할 수 있었습니다.
+```r
+clustering_markers = c("CD3", "CD4", "CD8", "CD45RO")
+```
 
-새 구조는 R minor version에 맞는 Bioconductor repository를 자동으로 선택합니다.
+## 8. Create a New Small Test Dataset
 
-| R version | Bioconductor repositories |
+If you replace `data/` and `metadata/` with a new experiment and want to create a small test dataset from it, run:
+
+```r
+source("scripts/create_test_data.R")
+```
+
+By default this samples 500 cells per FCS file and writes:
+
+```text
+example_data/
+  data/
+  metadata/
+```
+
+To change the sample size, edit `cells_per_file` at the top of `scripts/create_test_data.R`.
+
+## 9. Outputs
+
+Default real-analysis outputs are written to:
+
+```text
+results/
+  Output 1 - Data Prep/
+  Output 2 - Batch Alignment/
+  Output 3 - Clustering_k100/
+```
+
+Important files:
+
+| Output | Meaning |
 | --- | --- |
-| R 4.0.x | BioC 3.12 |
-| R 4.1.x | BioC 3.14 |
-| R 4.2.x | BioC 3.16 |
-| R 4.3.x | BioC 3.18 |
-| R 4.4.x | BioC 3.20 |
-| R 4.5.x | BioC 3.22 |
+| `marker_mapping.csv` | Channel-to-marker matching report |
+| `cell.dat_transformed.csv` | Merged metadata-added arcsinh-transformed data |
+| `cell.dat_Clustered_k*.csv` | Full clustered cell table |
+| `cell.dat_umap.csv` | UMAP plotting table |
+| `Summary_fastPG_k*.csv` | Cluster summary table |
+| `Proportions/*.csv` | Cluster proportions by sample/group/donor |
+| `Proportions/*.png` | Proportion plots |
+| `FCS files/` | Optional clustered FCS exports |
 
-정확히 고정되는 core packages:
+## 10. Troubleshooting
 
-| Package | Version | GitHub SHA |
-| --- | --- | --- |
-| Spectre | 1.3.0 | `159dc9f6d700b0dbd9fed8677cd94521c661691e` |
-| FastPG | 0.0.8 | `44c9282fdd3de97e8e98a7c9165b7cc67d130e1a` |
-| CytoNorm | 2.0.9 | `b1046ac76d4873acdcc82e92003e8eb919ebdd01` |
+### RStudio cannot find packages
 
-## 주요 파일
-
-- `Spectre_wrapper_Anjali2.R`: 사용자용 wrapper. 이 파일의 `SETTINGS`만 수정합니다.
-- `scripts/run_spectre_unified.R`: batch control 있음/없음 모두 처리하는 통합 pipeline.
-- `scripts/help_functions.R`: pipeline에서 사용하는 helper functions.
-- `scripts/setup_renv_core.R`: R 4.x 호환 project-local environment bootstrap.
-- `scripts/restore_renv_core_safe.R`: 원래 R 환경을 해치지 않는 safe restore wrapper.
-- `scripts/check_renv_core.R`: core pinned package SHA 검증.
-- `scripts/renv_core_repos.R`: R 4.x / Bioconductor repository helper.
-- `renv.lock`: core package만 포함한 minimal lockfile.
-- `renv.lock.full.R-4.4.1.backup`: 예전 full lockfile reference backup.
-
-`scripts/`와 `scripts_noref/`의 legacy files는 비교용으로 보존했습니다. 새 분석은 `Spectre_wrapper_Anjali2.R`를 사용하세요.
-
-## GitHub 업로드 체크리스트
-
-GitHub에 올릴 파일:
-
-```text
-.Rprofile
-.gitignore
-README.md
-JJ_R_Env.Rproj
-Spectre_wrapper_Anjali2.R
-renv.lock
-renv.lock.full.R-4.4.1.backup
-renv/activate.R
-renv/settings.json
-scripts/
-scripts_noref/
-```
-
-GitHub에 올리지 않을 파일:
-
-```text
-data/
-metadata/
-Output*/
-output/
-renv/library/
-renv/staging/
-*.fcs
-*.FCS
-*.RData
-*.csv
-*.rds
-*.png
-*.pdf
-```
-
-처음 GitHub에 올릴 때 사용할 수 있는 command:
-
-```bash
-git init
-git add .Rprofile .gitignore README.md JJ_R_Env.Rproj Spectre_wrapper_Anjali2.R
-git add renv.lock renv.lock.full.R-4.4.1.backup renv/activate.R renv/settings.json
-git add scripts scripts_noref
-git commit -m "Prepare Spectre pipeline for R 4.x renv setup"
-```
-
-GitHub repository를 만든 뒤에는 GitHub가 안내하는 remote add / push command를 이어서 실행하면 됩니다.
-
-## Troubleshooting
-
-`check_renv_core.R`에서 package가 없다고 나오면:
+Run:
 
 ```r
 source("scripts/setup_renv_core.R")
 source("scripts/check_renv_core.R")
 ```
 
-Restore가 필요하면 raw `renv::restore()` 대신 아래 명령을 권장합니다.
+### `renv::restore()` fails with a Bioconductor or BiocVersion error
+
+Use:
 
 ```r
 source("scripts/restore_renv_core_safe.R")
 ```
 
-Metadata column이 없다는 error가 나오면 `Spectre_wrapper_Anjali2.R`의 `meta_columns` 설정과 `sample.details.csv`의 column name이 정확히 일치하는지 확인하세요.
+This project intentionally avoids locking `BiocManager` and `BiocVersion` to a single R minor version.
 
-Marker matching warning이 많이 나오면 `ORIGINAL MARKERS.csv`의 첫 두 column이 channel name과 marker name인지 확인하세요.
+### Metadata column is missing
 
-R 4.0 또는 R 4.1에서 dependency 설치가 실패할 수 있습니다. 이 경우 core package SHA는 유지되지만, 오래된 R에서 최신 dependency가 지원되지 않는 것이 원인일 수 있습니다. 가능하면 R 4.2 이상을 권장합니다.
+Check that `sample.details.csv` contains:
+
+```text
+FileName, Sample, Group, Batch, Donor
+```
+
+If your file uses different column names, update `meta_columns` in `Spectre_wrapper.R`.
+
+### Many marker matching warnings appear
+
+Check that the first column of `ORIGINAL MARKERS.csv` matches the FCS channel names and that the second column contains clean marker names.
+
+### The run is slow
+
+For a quick test, use:
+
+```r
+umap_cells = 2000
+do_marker_umaps = FALSE
+do_fcs_export = FALSE
+```
+
+For the final run, turn those outputs back on if needed.
+
+## 11. Development Notes
+
+Current scripts live in `scripts/`. Historical scripts were moved to `legacy/` and are not used by the current workflow.
+
+The real `data/`, `metadata/`, `results/`, and `example_results*/` folders are ignored by Git. The small bundled `example_data/` folder is tracked for testing and onboarding.

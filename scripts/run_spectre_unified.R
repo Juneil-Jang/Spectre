@@ -42,13 +42,14 @@ require_columns <- function(dat, cols, location) {
 load_spectre_packages <- function() {
   packages <- c(
     "Spectre", "data.table", "dplyr", "FastPG", "CytoNorm",
-    "flowCore", "stringr", "pheatmap", "RColorBrewer", "scales"
+    "flowCore", "stringr", "ggplot2", "pheatmap", "RColorBrewer", "scales"
   )
   missing_packages <- packages[!vapply(packages, requireNamespace, logical(1), quietly = TRUE)]
   if (length(missing_packages) > 0) {
     stop(
       "Missing R package(s): ", paste(missing_packages, collapse = ", "), "\n",
-      "Open RStudio in this project and run renv::restore() first.",
+      "Open RStudio in this project and run source('scripts/setup_renv_core.R') first.\n",
+      "For a later restore, use source('scripts/restore_renv_core_safe.R').",
       call. = FALSE
     )
   }
@@ -130,6 +131,7 @@ normalise_settings <- function(settings) {
     output_dir = NULL,
     metadata_file = "sample.details.csv",
     marker_file = "ORIGINAL MARKERS.csv",
+    marker_dir = NULL,
     meta_columns = c(sample = "Sample", group = "Group", batch = "Batch", donor = "Donor"),
     phenok = 100,
     flow_type = "aurora",
@@ -150,6 +152,7 @@ normalise_settings <- function(settings) {
     qc_plots = list(),
     do_qc_plots = TRUE,
     do_marker_umaps = TRUE,
+    do_proportion_plots = TRUE,
     do_summary = TRUE,
     do_fcs_export = TRUE,
     reuse_existing = FALSE
@@ -159,6 +162,7 @@ normalise_settings <- function(settings) {
   cfg$project_dir <- normalise_path(cfg$project_dir)
   cfg$data_dir <- normalise_path(cfg$data_dir, cfg$project_dir)
   cfg$metadata_dir <- normalise_path(cfg$metadata_dir, cfg$project_dir)
+  cfg$marker_dir <- normalise_path(cfg$marker_dir, cfg$project_dir)
   cfg$output_dir <- normalise_path(cfg$output_dir %||% cfg$project_dir, cfg$project_dir)
   cfg$meta_columns <- normalise_meta_columns(cfg$meta_columns)
   cfg$flow_type <- tolower(cfg$flow_type)
@@ -242,6 +246,32 @@ find_channel_match <- function(target, data_channels) {
   integer(0)
 }
 
+resolve_marker_path <- function(cfg) {
+  if (grepl("^[A-Za-z]:|^/|^~", cfg$marker_file)) {
+    candidates <- cfg$marker_file
+  } else {
+    search_dirs <- unique(c(
+      cfg$marker_dir,
+      cfg$metadata_dir,
+      cfg$data_dir,
+      cfg$project_dir
+    ))
+    search_dirs <- search_dirs[!is.na(search_dirs) & nzchar(search_dirs)]
+    candidates <- file.path(search_dirs, cfg$marker_file)
+  }
+
+  found <- candidates[file.exists(candidates)]
+  if (length(found) > 0) {
+    return(normalizePath(found[[1]], winslash = "/", mustWork = TRUE))
+  }
+
+  stop(
+    "Marker file not found. Searched:\n  ",
+    paste(normalizePath(candidates, winslash = "/", mustWork = FALSE), collapse = "\n  "),
+    call. = FALSE
+  )
+}
+
 read_marker_file <- function(marker_path) {
   if (!file.exists(marker_path)) {
     stop("Marker file not found: ", marker_path, call. = FALSE)
@@ -259,6 +289,15 @@ read_marker_file <- function(marker_path) {
   markers <- markers[nzchar(as.character(markers[[channel_col]])) & nzchar(as.character(markers[[marker_col]]))]
 
   list(data = markers, channel_col = channel_col, marker_col = marker_col)
+}
+
+safe_filename <- function(x) {
+  x <- as.character(x)
+  x <- trimws(x)
+  x <- gsub("[^A-Za-z0-9_.-]+", "_", x)
+  x <- gsub("_+", "_", x)
+  x <- gsub("^_|_$", "", x)
+  ifelse(is.na(x) | x == "", "NA", x)
 }
 
 read_input_data <- function(cfg) {
@@ -805,13 +844,12 @@ make_cluster_outputs <- function(cell_dat, clustering_cols, cfg, dirs) {
 
   if (as_flag(cfg$do_marker_umaps)) {
     for (marker in clustering_cols) {
-      threshold <- suppressWarnings(stats::quantile(plot_dat[[marker]], probs = 0.01, na.rm = TRUE))
       make_colour_plot_safe(
         plot_dat,
         "UMAP_X",
         "UMAP_Y",
         marker,
-        col.min.threshold = threshold,
+        col.min.threshold = 0.01,
         path = dirs$out3
       )
     }
@@ -827,12 +865,131 @@ make_cluster_outputs <- function(cell_dat, clustering_cols, cfg, dirs) {
       "UMAP_Y",
       "fastPG_Clusters",
       col.type = "factor",
-      filename = paste0("group_fastPG_clusters_", make.names(group_name), ".png"),
+      filename = paste0("group_fastPG_clusters_", safe_filename(group_name), ".png"),
       path = group_dir
     )
   }
 
   plot_dat
+}
+
+write_proportion_outputs <- function(cell_dat, cfg, out_dir) {
+  if (!as_flag(cfg$do_proportion_plots)) {
+    return(invisible(NULL))
+  }
+
+  sample_col <- cfg$meta_columns[["sample"]]
+  group_col <- cfg$meta_columns[["group"]]
+  donor_col <- cfg$meta_columns[["donor"]]
+  cluster_col <- "fastPG_Clusters"
+  prop_dir <- ensure_dir(file.path(out_dir, "Proportions"))
+
+  make_table <- function(x_col, fill_col, denom_col, prefix) {
+    needed <- c(x_col, fill_col, denom_col)
+    missing_cols <- setdiff(needed, names(cell_dat))
+    if (length(missing_cols) > 0) {
+      warning(
+        "Skipping proportion output '", prefix, "' because column(s) were not found: ",
+        paste(missing_cols, collapse = ", "),
+        call. = FALSE
+      )
+      return(NULL)
+    }
+
+    tab <- data.table::as.data.table(cell_dat)[, .N, by = c(x_col, fill_col)]
+    tab[, percent := N / sum(N) * 100, by = denom_col]
+    data.table::setorderv(tab, c(x_col, fill_col))
+    data.table::fwrite(tab, file.path(prop_dir, paste0(prefix, ".csv")))
+    tab
+  }
+
+  plot_table <- function(tab, x_col, fill_col, prefix, title, x_label, fill_label) {
+    if (is.null(tab) || nrow(tab) == 0) {
+      return(invisible(NULL))
+    }
+
+    p <- ggplot2::ggplot(
+      tab,
+      ggplot2::aes(
+        x = as.factor(.data[[x_col]]),
+        y = percent,
+        fill = as.factor(.data[[fill_col]])
+      )
+    ) +
+      ggplot2::geom_col(width = 0.85) +
+      ggplot2::labs(
+        title = title,
+        x = x_label,
+        y = "Percentage (%)",
+        fill = fill_label
+      ) +
+      ggplot2::theme_bw(base_size = 12) +
+      ggplot2::theme(
+        axis.text.x = ggplot2::element_text(angle = 45, hjust = 1, vjust = 1),
+        panel.grid.major.x = ggplot2::element_blank(),
+        plot.title = ggplot2::element_text(face = "bold")
+      )
+
+    width <- max(8, length(unique(tab[[x_col]])) * 0.35)
+    ggplot2::ggsave(
+      filename = file.path(prop_dir, paste0(prefix, ".png")),
+      plot = p,
+      width = width,
+      height = 5.5,
+      dpi = 300
+    )
+    invisible(p)
+  }
+
+  sample_tab <- make_table(sample_col, cluster_col, sample_col, "sample_cluster_proportions")
+  plot_table(
+    sample_tab,
+    sample_col,
+    cluster_col,
+    "sample_cluster_proportions",
+    "Proportion of fastPG clusters per sample",
+    "Sample",
+    "Cluster"
+  )
+
+  cluster_sample_tab <- make_table(cluster_col, sample_col, cluster_col, "cluster_composition_by_sample")
+  plot_table(
+    cluster_sample_tab,
+    cluster_col,
+    sample_col,
+    "cluster_composition_by_sample",
+    "Sample composition per fastPG cluster",
+    "fastPG cluster",
+    "Sample"
+  )
+
+  if (group_col %in% names(cell_dat)) {
+    cluster_group_tab <- make_table(cluster_col, group_col, cluster_col, "cluster_composition_by_group")
+    plot_table(
+      cluster_group_tab,
+      cluster_col,
+      group_col,
+      "cluster_composition_by_group",
+      "Group composition per fastPG cluster",
+      "fastPG cluster",
+      "Group"
+    )
+  }
+
+  if (donor_col %in% names(cell_dat)) {
+    cluster_donor_tab <- make_table(cluster_col, donor_col, cluster_col, "cluster_composition_by_donor")
+    plot_table(
+      cluster_donor_tab,
+      cluster_col,
+      donor_col,
+      "cluster_composition_by_donor",
+      "Donor composition per fastPG cluster",
+      "fastPG cluster",
+      "Donor"
+    )
+  }
+
+  invisible(NULL)
 }
 
 write_summary <- function(cell_dat, meta_dat, clustering_cols, cfg, out_dir) {
@@ -927,7 +1084,7 @@ run_spectre_unified <- function(settings = list()) {
 
   transformed_file <- file.path(dirs$out1, "cell.dat_transformed.csv")
   aligned_file <- file.path(dirs$out2, "5 - aligned data", "cell.dat_allAligned.csv")
-  marker_path <- file.path(cfg$data_dir, cfg$marker_file)
+  marker_path <- resolve_marker_path(cfg)
 
   meta_path <- file.path(cfg$metadata_dir, cfg$metadata_file)
   if (!file.exists(meta_path)) {
@@ -983,6 +1140,7 @@ run_spectre_unified <- function(settings = list()) {
   data.table::fwrite(cell_dat, file.path(dirs$out3, paste0("cell.dat_Clustered_k", cfg$phenok, ".csv")))
   plot_dat <- make_cluster_outputs(cell_dat, clustering_cols, cfg, dirs)
   write_summary(cell_dat, meta_dat, clustering_cols, cfg, dirs$out3)
+  write_proportion_outputs(cell_dat, cfg, dirs$out3)
   write_fcs_outputs(cell_dat, clustering_cols, cfg, dirs$out3)
 
   result <- list(

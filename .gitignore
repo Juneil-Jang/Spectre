@@ -10,6 +10,8 @@ renv/python/
 renv/sandbox/
 renv/staging/
 output/
+results/
+example_results*/
 Output*/
 *.csv
 *.rds
@@ -22,3 +24,10 @@ Output*/
 *.FCS
 data/
 metadata/
+
+# Keep the small bundled example dataset under version control.
+!example_data/
+!example_data/data/
+!example_data/data/*.fcs
+!example_data/metadata/
+!example_data/metadata/*.csv
