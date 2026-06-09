@@ -2,6 +2,7 @@
 .RData
 .Ruserdata
 .Rproj.user/
+.codex-build/
 renv/library/
 renv/local/
 renv/cellar/
@@ -12,6 +13,7 @@ renv/staging/
 output/
 results/
 example_results*/
+run_logs/
 Output*/
 *.csv
 *.rds

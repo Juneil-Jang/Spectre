@@ -46,4 +46,16 @@ renv::restore(
   prompt = FALSE
 )
 
+helper_packages <- c("openxlsx")
+missing_helpers <- helper_packages[!vapply(helper_packages, requireNamespace, logical(1), quietly = TRUE)]
+if (length(missing_helpers) > 0) {
+  message(">>> Installing helper package(s): ", paste(missing_helpers, collapse = ", "))
+  renv::install(
+    missing_helpers,
+    project = PROJECT_DIR,
+    library = project_library,
+    prompt = FALSE
+  )
+}
+
 message(">>> Safe project-local restore completed.")

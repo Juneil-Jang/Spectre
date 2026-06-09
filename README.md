@@ -1,130 +1,83 @@
 # Spectre Cytometry Analysis Pipeline
 
-This repository contains a wet-lab friendly R pipeline for high-dimensional cytometry analysis using Spectre, FastPG, and CytoNorm.
+Wet-lab users do **not** need to edit R code for routine analyses.
 
-The main entry point is:
+The simplest workflow is:
 
-```r
-source("Spectre_wrapper.R")
-```
+1. Install R.
+2. Double-click the setup file once.
+3. Edit `config.xlsx`.
+4. Double-click the run file.
 
-Open `Spectre_wrapper.R` in RStudio, edit only the `SETTINGS` block, and click **Source**.
-
-## What This Pipeline Does
-
-- Imports `.fcs` files.
-- Adds sample metadata from `sample.details.csv`.
-- Renames instrument channels using `ORIGINAL MARKERS.csv`.
-- Applies arcsinh transformation.
-- Optionally performs CytoNorm batch alignment.
-- Runs FastPG clustering.
-- Generates UMAPs, heatmaps, summary tables, cluster proportions, and optional clustered FCS exports.
-
-## Repository Layout
-
-```text
-Spectre/
-  Spectre_wrapper.R              # Main user-facing wrapper
-  README.md                      # This manual
-  renv.lock                      # Minimal core-pinned renv lockfile
-  scripts/                       # Active scripts only
-    run_spectre_unified.R
-    help_functions.R
-    setup_renv_core.R
-    restore_renv_core_safe.R
-    check_renv_core.R
-    create_test_data.R
-    smoke_test_example_data.R
-  example_data/                  # Small random-sampled test dataset
-    data/
-    metadata/
-  legacy/                        # Archived old scripts, not used for new runs
-```
-
-Your real experiment files should go in local `data/` and `metadata/` folders. These folders are ignored by Git so large or private experiment data are not uploaded accidentally.
-
-## 1. Install R and RStudio
+## Quick Start
 
 ### Windows
 
-1. Install R 4.x from CRAN: <https://cloud.r-project.org/>
-2. Install RStudio Desktop: <https://posit.co/download/rstudio-desktop/>
-3. Install Rtools matching your R version if package compilation is needed:
-   <https://cran.r-project.org/bin/windows/Rtools/>
-4. Restart Windows after installing R/Rtools if RStudio cannot find the compiler.
+1. Install R 4.x from <https://cloud.r-project.org/>.
+2. If package installation asks for compilers, install Rtools from <https://cran.r-project.org/bin/windows/Rtools/>.
+3. Double-click `SETUP_WINDOWS.bat`.
+4. Open `config.xlsx` in Excel.
+5. Keep `use_example_data = TRUE` for the first test run.
+6. Double-click `RUN_WINDOWS.bat`.
 
 ### macOS
 
-1. Install R 4.x from CRAN: <https://cloud.r-project.org/>
-2. Install RStudio Desktop: <https://posit.co/download/rstudio-desktop/>
-3. Install Apple Command Line Tools:
+1. Install R 4.x from <https://cloud.r-project.org/>.
+2. Install Apple Command Line Tools:
 
 ```bash
 xcode-select --install
 ```
 
-4. If R package compilation fails on macOS, install the CRAN-recommended Fortran toolchain for your R version from:
-   <https://mac.r-project.org/tools/>
+3. If package compilation fails, install the CRAN-recommended macOS toolchain from <https://mac.r-project.org/tools/>.
+4. Double-click `SETUP_MAC.command`.
+5. Open `config.xlsx` in Excel, Numbers, or LibreOffice.
+6. Keep `use_example_data = TRUE` for the first test run.
+7. Double-click `RUN_MAC.command`.
 
-## 2. Open the Project
+If macOS blocks the `.command` files, right-click the file and choose **Open**. If it still refuses to run, open Terminal in this folder and run:
 
-Open `JJ_R_Env.Rproj` in RStudio. Opening the project file is recommended because it sets the working directory correctly on both Windows and macOS.
-
-If RStudio asks whether to activate `renv`, allow it.
-
-## 3. Set Up the R Environment
-
-This project supports R 4.0 through R 4.5 by pinning only the core analysis packages and letting each R minor version use its compatible CRAN/Bioconductor repositories.
-
-Run this once in the RStudio Console:
-
-```r
-source("scripts/setup_renv_core.R")
-source("scripts/check_renv_core.R")
+```bash
+chmod +x SETUP_MAC.command RUN_MAC.command
 ```
 
-If you need to restore the project later, prefer this safe wrapper instead of raw `renv::restore()`:
+## Main Files
 
-```r
-source("scripts/restore_renv_core_safe.R")
-```
-
-The safe restore uses the project-local renv library and `clean = FALSE`, so it does not prune or delete packages from your normal user R library.
-
-### Core pinned packages
-
-| Package | GitHub SHA |
+| File or folder | Purpose |
 | --- | --- |
-| Spectre | `159dc9f6d700b0dbd9fed8677cd94521c661691e` |
-| FastPG | `44c9282fdd3de97e8e98a7c9165b7cc67d130e1a` |
-| CytoNorm | `b1046ac76d4873acdcc82e92003e8eb919ebdd01` |
+| `config.xlsx` | Main user settings file. Edit the yellow `Value` cells. |
+| `SETUP_WINDOWS.bat` | One-time Windows setup. |
+| `RUN_WINDOWS.bat` | Windows double-click analysis runner. |
+| `SETUP_MAC.command` | One-time macOS setup. |
+| `RUN_MAC.command` | macOS double-click analysis runner. |
+| `example_data/` | Small random-sampled FCS test dataset. |
+| `data/` | Put your real `.fcs` files here. Ignored by Git. |
+| `metadata/` | Put your real metadata CSV files here. Ignored by Git. |
+| `results/` | Default output folder for real analyses. Ignored by Git. |
+| `scripts/` | Active pipeline scripts. |
+| `legacy/` | Archived old scripts for reference only. |
 
-## 4. Try the Bundled Example Dataset
+`Spectre_wrapper.R` is still provided for RStudio users, but it simply reads `config.xlsx`. You should not need to edit it.
 
-A small random-sampled test dataset is included under `example_data/`.
+## First Test Run
 
-Option A: use the wrapper.
+The included `config.xlsx` starts with:
 
-1. Open `Spectre_wrapper.R`.
-2. Set:
-
-```r
-use_example_data <- TRUE
+```text
+use_example_data = TRUE
 ```
 
-3. Click **Source**.
+This runs the bundled small dataset in `example_data/` and writes output to:
 
-Option B: run the smoke test script.
-
-```r
-source("scripts/smoke_test_example_data.R")
+```text
+example_results/
 ```
 
-Example outputs are written to `example_results/` or `example_results_smoke/`. These folders are ignored by Git.
+This is the recommended first test after setup.
 
-## 5. Prepare Your Own Data
+## Running Your Own Experiment
 
-Create this folder structure:
+Create this structure:
 
 ```text
 Spectre/
@@ -136,9 +89,20 @@ Spectre/
     ORIGINAL MARKERS.csv
 ```
 
-The pipeline also accepts `ORIGINAL MARKERS.csv` inside `data/` for backward compatibility, but `metadata/` is recommended.
+Then open `config.xlsx` and change:
 
-### sample.details.csv
+```text
+use_example_data = FALSE
+data_dir = data
+metadata_dir = metadata
+output_dir = results
+```
+
+Double-click the run file for your operating system.
+
+## Required Metadata Files
+
+### `sample.details.csv`
 
 Required columns:
 
@@ -156,7 +120,16 @@ Optional but recommended:
 | --- | --- |
 | `Cells per sample` | Original or sampled cell count |
 
-### ORIGINAL MARKERS.csv
+If your columns use different names, edit these fields in `config.xlsx`:
+
+```text
+sample_column
+group_column
+batch_column
+donor_column
+```
+
+### `ORIGINAL MARKERS.csv`
 
 This file needs at least two columns:
 
@@ -174,118 +147,81 @@ BUV661-A_CD4,CD4
 BV570-A_CD45RO,CD45RO
 ```
 
-## 6. Run a Real Analysis
+The recommended location is `metadata/ORIGINAL MARKERS.csv`. For backward compatibility, the pipeline also looks in `data/`.
 
-1. Put FCS files in `data/`.
-2. Put `sample.details.csv` and `ORIGINAL MARKERS.csv` in `metadata/`.
-3. Open `Spectre_wrapper.R`.
-4. Keep:
+## Important `config.xlsx` Settings
 
-```r
-use_example_data <- FALSE
-```
+Edit only the yellow `Value` cells in the `Settings` sheet.
 
-5. Edit only the `settings <- list(...)` section.
-6. Click **Source** in RStudio.
+### Data selection
 
-## 7. Important Wrapper Settings
-
-### Core settings
-
-```r
-phenok = 100
-flow_type = "aurora"
-cofactor = 2000
-random_seed = 42
-umap_cells = 100000
-```
-
-Common cofactors:
-
-| Data type | Typical cofactor |
+| Setting | Typical value |
 | --- | --- |
-| CyTOF | `5` |
-| Aurora / spectral flow | `2000` |
-| Conventional flow | `200` |
+| `use_example_data` | `TRUE` for the bundled example, `FALSE` for your own data |
+| `data_dir` | `data` |
+| `metadata_dir` | `metadata` |
+| `output_dir` | `results` |
+
+### Analysis
+
+| Setting | Typical value |
+| --- | --- |
+| `phenok` | `100` for real analyses, capped at `10` in example mode |
+| `flow_type` | `aurora`, `flow`, or `cytof` |
+| `cofactor` | `2000` for Aurora, `200` for flow, `5` for CyTOF |
+| `random_seed` | `42` |
+| `umap_cells` | `100000` for real analyses |
 
 ### Batch alignment
 
 No batch alignment:
 
-```r
+```text
 batch_align = FALSE
-batch_controls = character(0)
+batch_controls =
 ```
 
 Batch alignment with control samples:
 
-```r
+```text
 batch_align = TRUE
-batch_controls = c("BatchCtrl_1", "BatchCtrl_2")
+batch_controls = BatchCtrl_1, BatchCtrl_2
 ```
 
 Batch alignment without controls, using all samples:
 
-```r
+```text
 batch_align = TRUE
-batch_controls = character(0)
+batch_controls =
 ```
 
 ### Optional filters
 
-Use exact column names after transformation. For names containing spaces or symbols, wrap the column name in backticks.
+Use exact transformed column names. Separate multiple filters with semicolons or line breaks.
 
-```r
-analysis_filters = c(
-  "CD3_asinh > 1",
-  "`FSC-H` > `FSC-A` * 0.85 & `FSC-H` < `FSC-A` * 1.15"
-)
+Example:
+
+```text
+analysis_filters = CD3_asinh > 1; `FSC-H` > `FSC-A` * 0.85 & `FSC-H` < `FSC-A` * 1.15
 ```
 
-### Equal downsampling across samples
+### Clustering marker subset
 
-```r
-balance_samples = TRUE
-cells_per_sample = NULL
-```
+Use all markers:
 
-`NULL` uses the smallest sample size after filtering.
-
-### Marker subset for clustering
-
-Use all transformed/aligned markers:
-
-```r
-clustering_markers = NULL
+```text
+clustering_markers =
 ```
 
 Use selected markers:
 
-```r
-clustering_markers = c("CD3", "CD4", "CD8", "CD45RO")
-```
-
-## 8. Create a New Small Test Dataset
-
-If you replace `data/` and `metadata/` with a new experiment and want to create a small test dataset from it, run:
-
-```r
-source("scripts/create_test_data.R")
-```
-
-By default this samples 500 cells per FCS file and writes:
-
 ```text
-example_data/
-  data/
-  metadata/
+clustering_markers = CD3, CD4, CD8, CD45RO
 ```
 
-To change the sample size, edit `cells_per_file` at the top of `scripts/create_test_data.R`.
+## Outputs
 
-## 9. Outputs
-
-Default real-analysis outputs are written to:
+Real-analysis outputs are written to `results/` by default:
 
 ```text
 results/
@@ -307,55 +243,96 @@ Important files:
 | `Proportions/*.png` | Proportion plots |
 | `FCS files/` | Optional clustered FCS exports |
 
-## 10. Troubleshooting
+## Creating a New Small Test Dataset
 
-### RStudio cannot find packages
+After setup, replace `data/` and `metadata/` with a new experiment and run:
 
-Run:
+```r
+source("scripts/create_test_data.R")
+```
+
+This samples 500 cells per FCS file and writes:
+
+```text
+example_data/
+  data/
+  metadata/
+```
+
+Advanced users can edit `cells_per_file` at the top of `scripts/create_test_data.R`.
+
+## RStudio Is Optional
+
+RStudio is helpful for troubleshooting but is not required for routine runs.
+
+If you do use RStudio:
+
+1. Open `JJ_R_Env.Rproj`.
+2. Edit `config.xlsx`.
+3. Source `Spectre_wrapper.R`.
+
+Do not edit `Spectre_wrapper.R` unless you are developing the pipeline.
+
+## R Environment Policy
+
+The project supports R 4.0 through R 4.5 by pinning only the core analysis packages and letting each R minor version use compatible CRAN/Bioconductor repositories.
+
+Core pinned packages:
+
+| Package | GitHub SHA |
+| --- | --- |
+| Spectre | `159dc9f6d700b0dbd9fed8677cd94521c661691e` |
+| FastPG | `44c9282fdd3de97e8e98a7c9165b7cc67d130e1a` |
+| CytoNorm | `b1046ac76d4873acdcc82e92003e8eb919ebdd01` |
+
+The setup scripts install packages into the project-local renv library. They do not clean or prune your normal user R library.
+
+For manual setup in R:
 
 ```r
 source("scripts/setup_renv_core.R")
 source("scripts/check_renv_core.R")
 ```
 
-### `renv::restore()` fails with a Bioconductor or BiocVersion error
-
-Use:
+For manual safe restore:
 
 ```r
 source("scripts/restore_renv_core_safe.R")
 ```
 
-This project intentionally avoids locking `BiocManager` and `BiocVersion` to a single R minor version.
+## Troubleshooting
 
-### Metadata column is missing
+### The run file says Rscript was not found
 
-Check that `sample.details.csv` contains:
+Install R 4.x from <https://cloud.r-project.org/>. On Windows, restart after installing R if the runner still cannot find it.
+
+### `config.xlsx` cannot be read
+
+Run the setup file once. The setup installs `openxlsx`, which is used to read the Excel config.
+
+### Preflight check failed
+
+Read the listed item(s). The preflight checker usually catches:
+
+- Missing `data/` or `metadata/` folder.
+- No `.fcs` files.
+- Missing `sample.details.csv`.
+- Missing required metadata columns.
+- FCS filenames in metadata that do not match files in `data/`.
+- Batch control sample names that are not present in metadata.
+
+### Package installation fails
+
+Windows users may need Rtools. macOS users may need Apple Command Line Tools and the CRAN Fortran toolchain. After installing system tools, run the setup file again.
+
+### The analysis is slow
+
+For a quick test, set:
 
 ```text
-FileName, Sample, Group, Batch, Donor
-```
-
-If your file uses different column names, update `meta_columns` in `Spectre_wrapper.R`.
-
-### Many marker matching warnings appear
-
-Check that the first column of `ORIGINAL MARKERS.csv` matches the FCS channel names and that the second column contains clean marker names.
-
-### The run is slow
-
-For a quick test, use:
-
-```r
 umap_cells = 2000
 do_marker_umaps = FALSE
 do_fcs_export = FALSE
 ```
 
-For the final run, turn those outputs back on if needed.
-
-## 11. Development Notes
-
-Current scripts live in `scripts/`. Historical scripts were moved to `legacy/` and are not used by the current workflow.
-
-The real `data/`, `metadata/`, `results/`, and `example_results*/` folders are ignored by Git. The small bundled `example_data/` folder is tracked for testing and onboarding.
+Turn those outputs back on for the final run if needed.

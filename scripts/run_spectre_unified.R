@@ -42,7 +42,8 @@ require_columns <- function(dat, cols, location) {
 load_spectre_packages <- function() {
   packages <- c(
     "Spectre", "data.table", "dplyr", "FastPG", "CytoNorm",
-    "flowCore", "stringr", "ggplot2", "pheatmap", "RColorBrewer", "scales"
+    "flowCore", "stringr", "openxlsx", "ggplot2", "pheatmap",
+    "RColorBrewer", "scales"
   )
   missing_packages <- packages[!vapply(packages, requireNamespace, logical(1), quietly = TRUE)]
   if (length(missing_packages) > 0) {

@@ -68,6 +68,15 @@ renv::install(
   prompt = FALSE
 )
 
+helper_packages <- c("openxlsx")
+message(">>> Installing helper package(s): ", paste(helper_packages, collapse = ", "))
+renv::install(
+  helper_packages,
+  project = PROJECT_DIR,
+  library = project_library,
+  prompt = FALSE
+)
+
 spectre_write_core_lockfile(PROJECT_DIR)
 
 message(">>> Core renv setup complete.")
