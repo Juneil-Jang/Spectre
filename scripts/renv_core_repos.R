@@ -81,6 +81,59 @@ spectre_use_r4_bioc_repos <- function(quiet = FALSE) {
   invisible(list(bioconductor_version = bioc_version, repos = repos))
 }
 
+spectre_add_windows_rtools_to_path <- function(quiet = FALSE) {
+  if (!identical(.Platform$OS.type, "windows")) {
+    return(invisible(FALSE))
+  }
+  if (nzchar(Sys.which("make")[["make"]])) {
+    return(invisible(TRUE))
+  }
+
+  roots <- c(
+    Sys.getenv("RTOOLS45_HOME", unset = ""),
+    Sys.getenv("RTOOLS44_HOME", unset = ""),
+    Sys.getenv("RTOOLS43_HOME", unset = ""),
+    Sys.getenv("RTOOLS42_HOME", unset = ""),
+    "C:/rtools45",
+    "C:/rtools44",
+    "C:/rtools43",
+    "C:/rtools42",
+    "C:/rtools40"
+  )
+  roots <- unique(normalizePath(roots[nzchar(roots)], winslash = "/", mustWork = FALSE))
+  roots <- roots[dir.exists(roots)]
+  if (length(roots) == 0) {
+    return(invisible(FALSE))
+  }
+
+  candidate_dirs <- character(0)
+  for (root in roots) {
+    candidate_dirs <- c(candidate_dirs, file.path(root, "usr", "bin"))
+    compiler_bins <- list.files(
+      root,
+      pattern = "^(gcc|g\\+\\+)\\.exe$",
+      recursive = TRUE,
+      full.names = TRUE,
+      ignore.case = TRUE
+    )
+    candidate_dirs <- c(candidate_dirs, dirname(compiler_bins))
+  }
+
+  candidate_dirs <- unique(normalizePath(candidate_dirs, winslash = "/", mustWork = FALSE))
+  candidate_dirs <- candidate_dirs[dir.exists(candidate_dirs)]
+  if (length(candidate_dirs) == 0) {
+    return(invisible(FALSE))
+  }
+
+  Sys.setenv(PATH = paste(c(candidate_dirs, Sys.getenv("PATH")), collapse = .Platform$path.sep))
+
+  found <- nzchar(Sys.which("make")[["make"]])
+  if (found && !quiet) {
+    message("Using Windows Rtools from: ", dirname(Sys.which("make")[["make"]]))
+  }
+  invisible(found)
+}
+
 spectre_core_package_refs <- function() {
   c(
     Spectre = "immunedynamics/Spectre@159dc9f6d700b0dbd9fed8677cd94521c661691e",

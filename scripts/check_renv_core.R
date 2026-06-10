@@ -23,8 +23,20 @@ spectre_find_project_dir <- function() {
 PROJECT_DIR <- spectre_find_project_dir()
 setwd(PROJECT_DIR)
 
+Sys.setenv(
+  RENV_CONFIG_CONSENT = "TRUE",
+  RENV_CONFIG_SYNCHRONIZED_CHECK = "FALSE"
+)
+
+activate_script <- file.path(PROJECT_DIR, "renv", "activate.R")
+if (!file.exists(activate_script)) {
+  stop("renv/activate.R is missing; cannot check the project library.", call. = FALSE)
+}
+source(activate_script)
+
 source(file.path(PROJECT_DIR, "scripts", "renv_core_repos.R"))
 repo_info <- spectre_use_r4_bioc_repos(quiet = TRUE)
+spectre_use_project_renv_library(PROJECT_DIR)
 
 expected_shas <- spectre_core_package_shas()
 failures <- character(0)

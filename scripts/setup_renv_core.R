@@ -25,7 +25,10 @@ spectre_find_project_dir <- function() {
 PROJECT_DIR <- spectre_find_project_dir()
 setwd(PROJECT_DIR)
 
-Sys.setenv(RENV_CONFIG_CONSENT = "TRUE")
+Sys.setenv(
+  RENV_CONFIG_CONSENT = "TRUE",
+  RENV_CONFIG_SYNCHRONIZED_CHECK = "FALSE"
+)
 
 activate_script <- file.path(PROJECT_DIR, "renv", "activate.R")
 if (!file.exists(activate_script)) {
@@ -40,6 +43,7 @@ source(activate_script)
 source(file.path(PROJECT_DIR, "scripts", "renv_core_repos.R"))
 repo_info <- spectre_use_r4_bioc_repos()
 project_library <- spectre_use_project_renv_library(PROJECT_DIR)
+spectre_add_windows_rtools_to_path()
 
 renv::settings$snapshot.type("explicit", project = PROJECT_DIR)
 renv::settings$r.version(NULL, project = PROJECT_DIR)

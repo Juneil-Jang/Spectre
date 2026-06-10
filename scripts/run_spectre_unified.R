@@ -286,8 +286,10 @@ read_marker_file <- function(marker_path) {
   channel_col <- names(markers)[[1]]
   marker_col <- names(markers)[[2]]
   markers[[marker_col]] <- clean_marker_name(markers[[marker_col]])
-  markers <- markers[!is.na(markers[[channel_col]]) & !is.na(markers[[marker_col]])]
-  markers <- markers[nzchar(as.character(markers[[channel_col]])) & nzchar(as.character(markers[[marker_col]]))]
+  keep <- !is.na(markers[[channel_col]]) & !is.na(markers[[marker_col]])
+  markers <- markers[keep]
+  keep <- nzchar(as.character(markers[[channel_col]])) & nzchar(as.character(markers[[marker_col]]))
+  markers <- markers[keep]
 
   list(data = markers, channel_col = channel_col, marker_col = marker_col)
 }

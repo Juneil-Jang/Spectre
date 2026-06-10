@@ -127,7 +127,10 @@ spectre_activate_project <- function(project_dir) {
     )
   }
 
-  Sys.setenv(RENV_CONFIG_CONSENT = "TRUE")
+  Sys.setenv(
+    RENV_CONFIG_CONSENT = "TRUE",
+    RENV_CONFIG_SYNCHRONIZED_CHECK = "FALSE"
+  )
   tryCatch(
     source(activate_script),
     error = function(e) {
@@ -157,7 +160,7 @@ spectre_read_config <- function(config_path) {
     }
   )
 
-  names(dat) <- tolower(gsub("[^a-z0-9]+", "_", names(dat)))
+  names(dat) <- tolower(gsub("[^A-Za-z0-9]+", "_", names(dat)))
   if (!all(c("setting", "value") %in% names(dat))) {
     stop("config.xlsx must contain a Settings sheet with Setting and Value columns.", call. = FALSE)
   }
