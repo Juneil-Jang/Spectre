@@ -241,7 +241,10 @@ Important files:
 | `Summary_fastPG_k*.csv` | Cluster summary table |
 | `Proportions/*.csv` | Cluster proportions by sample/group/donor |
 | `Proportions/*.png` | Proportion plots |
+| `*.pdf` beside `*.png` | PDF copies of generated plots when `do_pdf_plots = TRUE` |
 | `FCS files/` | Optional clustered FCS exports |
+
+Set `do_pdf_plots = FALSE` in `config.xlsx` if you only want PNG plot files.
 
 ## Creating a New Small Test Dataset
 

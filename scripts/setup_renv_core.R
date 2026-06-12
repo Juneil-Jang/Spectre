@@ -72,7 +72,7 @@ renv::install(
   prompt = FALSE
 )
 
-helper_packages <- c("openxlsx")
+helper_packages <- c("openxlsx", "png")
 message(">>> Installing helper package(s): ", paste(helper_packages, collapse = ", "))
 renv::install(
   helper_packages,

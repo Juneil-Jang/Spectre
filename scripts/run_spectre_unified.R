@@ -43,7 +43,7 @@ load_spectre_packages <- function() {
   packages <- c(
     "Spectre", "data.table", "dplyr", "FastPG", "CytoNorm",
     "flowCore", "stringr", "openxlsx", "ggplot2", "pheatmap",
-    "RColorBrewer", "scales"
+    "RColorBrewer", "scales", "png"
   )
   missing_packages <- packages[!vapply(packages, requireNamespace, logical(1), quietly = TRUE)]
   if (length(missing_packages) > 0) {
@@ -154,6 +154,7 @@ normalise_settings <- function(settings) {
     do_qc_plots = TRUE,
     do_marker_umaps = TRUE,
     do_proportion_plots = TRUE,
+    do_pdf_plots = TRUE,
     do_summary = TRUE,
     do_fcs_export = TRUE,
     reuse_existing = FALSE
@@ -663,6 +664,18 @@ run_batch_alignment <- function(cell_dat, transformed_cols, cfg, dirs) {
   ensure_dir(dirs$out2)
   message(">>> Batch alignment mode: ", cfg$batch_mode)
 
+  batch_values <- unique(stats::na.omit(as.character(cell_dat[[batch_col]])))
+  if (length(batch_values) < 2) {
+    note <- paste0(
+      "Batch alignment was requested in '", cfg$batch_mode, "' mode, but only ",
+      length(batch_values), " unique batch value was found: ",
+      paste(batch_values, collapse = ", "), ". CytoNorm was skipped."
+    )
+    warning(note, call. = FALSE)
+    writeLines(note, file.path(dirs$out2, "batch_alignment_skipped.txt"))
+    return(list(data = cell_dat, analysis_cols = transformed_cols))
+  }
+
   pre_dir <- ensure_dir(file.path(dirs$out2, "1 - pre-alignment plots"))
   pre_dat <- safe_run_umap(cell_dat, transformed_cols, cfg$umap_cells, cfg$random_seed)
   make_colour_plot_safe(pre_dat, "UMAP_X", "UMAP_Y", batch_col, col.type = "factor", filename = "Batches.png", path = pre_dir)
@@ -1067,6 +1080,82 @@ write_fcs_outputs <- function(cell_dat, clustering_cols, cfg, out_dir) {
   )
 }
 
+png_to_pdf_plot <- function(png_file, pdf_file) {
+  img <- png::readPNG(png_file)
+  dims <- dim(img)
+  width <- max(dims[[2]] / 100, 1)
+  height <- max(dims[[1]] / 100, 1)
+
+  grDevices::pdf(pdf_file, width = width, height = height, useDingbats = FALSE)
+  on.exit(grDevices::dev.off(), add = TRUE)
+  grid::grid.newpage()
+  grid::grid.raster(
+    img,
+    width = grid::unit(1, "npc"),
+    height = grid::unit(1, "npc"),
+    interpolate = TRUE
+  )
+  invisible(pdf_file)
+}
+
+write_pdf_plot_copies <- function(out_dirs) {
+  out_dirs <- unique(as.character(unlist(out_dirs, use.names = FALSE)))
+  out_dirs <- out_dirs[dir.exists(out_dirs)]
+  if (length(out_dirs) == 0) {
+    return(invisible(NULL))
+  }
+
+  png_files <- unique(unlist(lapply(
+    out_dirs,
+    list.files,
+    pattern = "\\.png$",
+    recursive = TRUE,
+    full.names = TRUE,
+    ignore.case = TRUE
+  ), use.names = FALSE))
+
+  if (length(png_files) == 0) {
+    message(">>> No PNG plots found for PDF export.")
+    return(invisible(NULL))
+  }
+
+  converted <- 0L
+  skipped <- 0L
+  failed <- character(0)
+
+  for (png_file in png_files) {
+    pdf_file <- paste0(tools::file_path_sans_ext(png_file), ".pdf")
+    png_info <- file.info(png_file)
+    pdf_info <- file.info(pdf_file)
+
+    if (file.exists(pdf_file) && !is.na(pdf_info$mtime) && pdf_info$mtime >= png_info$mtime) {
+      skipped <- skipped + 1L
+      next
+    }
+
+    tryCatch(
+      {
+        png_to_pdf_plot(png_file, pdf_file)
+        converted <- converted + 1L
+      },
+      error = function(e) {
+        failed <<- c(failed, paste0(png_file, ": ", conditionMessage(e)))
+      }
+    )
+  }
+
+  message(">>> PDF plot export: ", converted, " converted, ", skipped, " already current.")
+  if (length(failed) > 0) {
+    warning(
+      "Some PNG plots could not be converted to PDF:\n",
+      paste(failed, collapse = "\n"),
+      call. = FALSE
+    )
+  }
+
+  invisible(list(converted = converted, skipped = skipped, failed = failed))
+}
+
 run_spectre_unified <- function(settings = list()) {
   cfg <- normalise_settings(settings)
   load_spectre_packages()
@@ -1145,6 +1234,9 @@ run_spectre_unified <- function(settings = list()) {
   write_summary(cell_dat, meta_dat, clustering_cols, cfg, dirs$out3)
   write_proportion_outputs(cell_dat, cfg, dirs$out3)
   write_fcs_outputs(cell_dat, clustering_cols, cfg, dirs$out3)
+  if (as_flag(cfg$do_pdf_plots)) {
+    write_pdf_plot_copies(dirs)
+  }
 
   result <- list(
     settings = cfg,

@@ -26,6 +26,7 @@ Output*/
 *.FCS
 data/
 metadata/
+/02 15 2026 single/
 
 # Keep the small bundled example dataset under version control.
 !example_data/

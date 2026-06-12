@@ -17,7 +17,7 @@ settings_rows <- data.frame(
     rep("Downsampling", 2),
     "Clustering",
     rep("QC", 2),
-    rep("Outputs", 6)
+    rep("Outputs", 7)
   ),
   Setting = c(
     "use_example_data",
@@ -48,6 +48,7 @@ settings_rows <- data.frame(
     "do_qc_plots",
     "do_marker_umaps",
     "do_proportion_plots",
+    "do_pdf_plots",
     "do_summary",
     "do_fcs_export",
     "reuse_existing"
@@ -78,6 +79,7 @@ settings_rows <- data.frame(
     "",
     "CD45RO_asinh",
     "SSC-A|FSC-A; FSC-H|FSC-A",
+    "TRUE",
     "TRUE",
     "TRUE",
     "TRUE",
@@ -114,6 +116,7 @@ settings_rows <- data.frame(
     "TRUE writes quick QC plots.",
     "TRUE writes marker expression UMAPs.",
     "TRUE writes cluster proportion tables and plots.",
+    "TRUE also saves PDF copies beside generated PNG plots.",
     "TRUE writes summary tables.",
     "TRUE writes clustered FCS exports. Example mode forces this to FALSE.",
     "TRUE reuses transformed/aligned CSV files if present."

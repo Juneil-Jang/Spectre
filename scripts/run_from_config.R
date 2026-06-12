@@ -209,6 +209,7 @@ spectre_build_settings <- function(values, project_dir) {
     do_qc_plots = spectre_bool(values, "do_qc_plots", default = TRUE),
     do_marker_umaps = spectre_bool(values, "do_marker_umaps", default = TRUE),
     do_proportion_plots = spectre_bool(values, "do_proportion_plots", default = TRUE),
+    do_pdf_plots = spectre_bool(values, "do_pdf_plots", default = TRUE),
     do_summary = spectre_bool(values, "do_summary", default = TRUE),
     do_fcs_export = spectre_bool(values, "do_fcs_export", default = TRUE),
     reuse_existing = spectre_bool(values, "reuse_existing", default = FALSE)
