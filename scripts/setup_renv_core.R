@@ -50,32 +50,13 @@ renv::settings$r.version(NULL, project = PROJECT_DIR)
 renv::settings$bioconductor.version(NULL, project = PROJECT_DIR)
 spectre_write_core_renv_settings(PROJECT_DIR)
 
-if (!requireNamespace("BiocManager", quietly = TRUE)) {
-  install.packages("BiocManager", lib = project_library, repos = getOption("repos")[["CRAN"]])
-}
-
-message(">>> Preparing Bioconductor ", repo_info$bioconductor_version, " for R ", getRversion())
-BiocManager::install(
-  version = repo_info$bioconductor_version,
-  lib = project_library,
-  ask = FALSE,
-  update = FALSE
-)
-
-core_refs <- unname(spectre_core_package_refs())
-message(">>> Installing core pinned packages:")
-message("    ", paste(core_refs, collapse = "\n    "))
+install_refs <- spectre_minimal_install_refs()
+message(">>> Using Bioconductor ", repo_info$bioconductor_version, " repositories for this R version.")
+message(">>> BiocManager/BiocVersion will not be installed or pinned.")
+message(">>> Installing minimal direct package set:")
+message("    ", paste(install_refs, collapse = "\n    "))
 renv::install(
-  core_refs,
-  project = PROJECT_DIR,
-  library = project_library,
-  prompt = FALSE
-)
-
-helper_packages <- c("openxlsx", "png")
-message(">>> Installing helper package(s): ", paste(helper_packages, collapse = ", "))
-renv::install(
-  helper_packages,
+  install_refs,
   project = PROJECT_DIR,
   library = project_library,
   prompt = FALSE

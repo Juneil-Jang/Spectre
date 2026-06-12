@@ -288,7 +288,15 @@ Core pinned packages:
 | FastPG | `44c9282fdd3de97e8e98a7c9165b7cc67d130e1a` |
 | CytoNorm | `b1046ac76d4873acdcc82e92003e8eb919ebdd01` |
 
-The setup scripts install packages into the project-local renv library. They do not clean or prune your normal user R library.
+The setup scripts install a minimal direct package set into the project-local renv library:
+
+```text
+Spectre, FastPG, CytoNorm, ggplot2, dplyr, data.table, openxlsx, png
+```
+
+R will still install required dependency packages automatically. Those dependencies are not pinned in `renv.lock`; each R 4.x minor version uses its compatible CRAN/Bioconductor repositories. `BiocManager` and `BiocVersion` are not installed or pinned by the setup script.
+
+The setup scripts do not clean or prune your normal user R library.
 
 For manual setup in R:
 
@@ -311,7 +319,7 @@ Install R 4.x from <https://cloud.r-project.org/>. On Windows, restart after ins
 
 ### `config.xlsx` cannot be read
 
-Run the setup file once. The setup installs `openxlsx`, which is used to read the Excel config.
+Run the setup file once. The setup installs the minimal direct package set, including `openxlsx`, which is used to read the Excel config.
 
 ### Preflight check failed
 

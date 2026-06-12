@@ -142,6 +142,14 @@ spectre_core_package_refs <- function() {
   )
 }
 
+spectre_direct_cran_packages <- function() {
+  c("ggplot2", "dplyr", "data.table", "openxlsx", "png")
+}
+
+spectre_minimal_install_refs <- function() {
+  c(unname(spectre_core_package_refs()), spectre_direct_cran_packages())
+}
+
 spectre_core_package_shas <- function() {
   c(
     Spectre = "159dc9f6d700b0dbd9fed8677cd94521c661691e",

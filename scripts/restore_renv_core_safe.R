@@ -52,12 +52,12 @@ renv::restore(
   prompt = FALSE
 )
 
-helper_packages <- c("openxlsx", "png")
-missing_helpers <- helper_packages[!vapply(helper_packages, requireNamespace, logical(1), quietly = TRUE)]
-if (length(missing_helpers) > 0) {
-  message(">>> Installing helper package(s): ", paste(missing_helpers, collapse = ", "))
+direct_packages <- spectre_direct_cran_packages()
+missing_direct <- direct_packages[!vapply(direct_packages, requireNamespace, logical(1), quietly = TRUE)]
+if (length(missing_direct) > 0) {
+  message(">>> Installing missing direct package(s): ", paste(missing_direct, collapse = ", "))
   renv::install(
-    missing_helpers,
+    missing_direct,
     project = PROJECT_DIR,
     library = project_library,
     prompt = FALSE
