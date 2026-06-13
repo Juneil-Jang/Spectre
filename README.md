@@ -6,8 +6,10 @@ The simplest workflow is:
 
 1. Install R.
 2. Double-click the setup file once.
-3. Edit `config.xlsx`.
-4. Double-click the run file.
+3. Run the bundled example once.
+4. Create one portable folder per experiment.
+5. Put data and metadata in that experiment folder.
+6. Double-click the experiment run file.
 
 ## Quick Start
 
@@ -38,7 +40,7 @@ xcode-select --install
 If macOS blocks the `.command` files, right-click the file and choose **Open**. If it still refuses to run, open Terminal in this folder and run:
 
 ```bash
-chmod +x SETUP_MAC.command RUN_MAC.command
+chmod +x SETUP_MAC.command RUN_MAC.command CREATE_EXPERIMENT_MAC.command
 ```
 
 ## Main Files
@@ -48,8 +50,10 @@ chmod +x SETUP_MAC.command RUN_MAC.command
 | `config.xlsx` | Main user settings file. Edit the yellow `Value` cells. |
 | `SETUP_WINDOWS.bat` | One-time Windows setup. |
 | `RUN_WINDOWS.bat` | Windows double-click analysis runner. |
+| `CREATE_EXPERIMENT_WINDOWS.bat` | Creates a separate portable Windows experiment folder. |
 | `SETUP_MAC.command` | One-time macOS setup. |
 | `RUN_MAC.command` | macOS double-click analysis runner. |
+| `CREATE_EXPERIMENT_MAC.command` | Creates a separate portable macOS experiment folder. |
 | `example_data/` | Small random-sampled FCS test dataset. |
 | `data/` | Put your real `.fcs` files here. Ignored by Git. |
 | `metadata/` | Put your real metadata CSV files here. Ignored by Git. |
@@ -76,6 +80,97 @@ example_results/
 This is the recommended first test after setup.
 
 ## Running Your Own Experiment
+
+### Recommended: one portable folder per experiment
+
+Keep the downloaded `Spectre/` folder as the central pipeline folder. It contains the code, R environment, setup files, and bundled example data. Then create a separate folder for each real experiment.
+
+```text
+Documents/
+  Spectre/                         central pipeline folder
+    SETUP_WINDOWS.bat
+    CREATE_EXPERIMENT_WINDOWS.bat
+    scripts/
+    renv/
+
+  Experiment_01/                   portable experiment folder
+    config.xlsx
+    RUN_SPECTRE_WINDOWS.bat
+    RUN_SPECTRE_MAC.command
+    spectre_pipeline_path.txt
+    data/
+      Sample_01.fcs
+      Sample_02.fcs
+    metadata/
+      sample.details.csv
+      ORIGINAL MARKERS.csv
+    results/
+```
+
+Windows:
+
+1. In the central `Spectre/` folder, double-click `SETUP_WINDOWS.bat` once.
+2. In the central `Spectre/` folder, double-click `CREATE_EXPERIMENT_WINDOWS.bat`.
+3. Paste or type the full path for the new experiment folder, for example:
+
+```text
+C:\Users\YourName\Documents\Experiment_01
+```
+
+4. Put all `.fcs` files into `Experiment_01/data/`.
+5. Put `sample.details.csv` and `ORIGINAL MARKERS.csv` into `Experiment_01/metadata/`.
+6. Open `Experiment_01/config.xlsx` and edit the yellow `Value` cells.
+7. Double-click `Experiment_01/RUN_SPECTRE_WINDOWS.bat`.
+
+macOS:
+
+1. In the central `Spectre/` folder, double-click `SETUP_MAC.command` once.
+2. In the central `Spectre/` folder, double-click `CREATE_EXPERIMENT_MAC.command`.
+3. Paste or type the full path for the new experiment folder, for example:
+
+```text
+/Users/YourName/Documents/Experiment_01
+```
+
+4. Put all `.fcs` files into `Experiment_01/data/`.
+5. Put `sample.details.csv` and `ORIGINAL MARKERS.csv` into `Experiment_01/metadata/`.
+6. Open `Experiment_01/config.xlsx` and edit the yellow `Value` cells.
+7. Double-click `Experiment_01/RUN_SPECTRE_MAC.command`.
+
+If macOS blocks the generated experiment runner, right-click `RUN_SPECTRE_MAC.command` and choose **Open**. If needed, open Terminal inside the experiment folder and run:
+
+```bash
+chmod +x RUN_SPECTRE_MAC.command
+```
+
+### What gets copied into the experiment folder
+
+The experiment creator writes these files:
+
+| File or folder | Purpose |
+| --- | --- |
+| `config.xlsx` | Experiment-specific settings. |
+| `data/` | Put this experiment's `.fcs` files here. |
+| `metadata/` | Put this experiment's metadata CSV files here. |
+| `results/` | Outputs are written here. |
+| `RUN_SPECTRE_WINDOWS.bat` | Windows runner for this experiment folder. |
+| `RUN_SPECTRE_MAC.command` | macOS runner for this experiment folder. |
+| `spectre_pipeline_path.txt` | Stores the path to the central `Spectre/` pipeline folder. |
+| `README_EXPERIMENT.md` | Short reminder for the experiment folder. |
+
+### Important folder rules
+
+Do **not** copy only `RUN_WINDOWS.bat` or `RUN_MAC.command` into another folder. Those files are for the central `Spectre/` folder and expect `scripts/`, `renv/`, and `config.xlsx` to be beside them.
+
+Use the generated `RUN_SPECTRE_WINDOWS.bat` or `RUN_SPECTRE_MAC.command` inside each experiment folder instead. These portable runners know where the central pipeline folder is because they read `spectre_pipeline_path.txt`.
+
+You can move an experiment folder after it is created. Its `config.xlsx`, `data/`, `metadata/`, and `results/` stay relative to the experiment folder.
+
+Do not move the central `Spectre/` pipeline folder after creating experiments. If you do move it, either edit `spectre_pipeline_path.txt` in each experiment folder or run `CREATE_EXPERIMENT_*` again to create fresh runners.
+
+Updating the central `Spectre/` folder updates the code used by all experiment folders. Each experiment still keeps its own `config.xlsx` and `results/`.
+
+### Alternative: run inside the central Spectre folder
 
 Create this structure:
 

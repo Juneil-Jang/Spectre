@@ -21,6 +21,58 @@ spectre_find_project_dir <- function(config_path = NULL) {
   normalizePath(getwd(), winslash = "/", mustWork = FALSE)
 }
 
+spectre_find_script_path <- function() {
+  frame_paths <- vapply(sys.frames(), function(frame) {
+    path <- frame$ofile
+    if (is.null(path)) NA_character_ else path
+  }, character(1))
+  frame_paths <- frame_paths[!is.na(frame_paths)]
+
+  if (length(frame_paths) > 0) {
+    return(normalizePath(frame_paths[[length(frame_paths)]], winslash = "/", mustWork = FALSE))
+  }
+
+  NA_character_
+}
+
+spectre_find_pipeline_dir <- function(pipeline_arg = NULL, config_dir = NULL) {
+  candidates <- character(0)
+
+  if (!is.null(pipeline_arg) && nzchar(pipeline_arg)) {
+    candidates <- c(candidates, pipeline_arg)
+  }
+
+  env_pipeline <- Sys.getenv("SPECTRE_PIPELINE_DIR", unset = "")
+  if (nzchar(env_pipeline)) {
+    candidates <- c(candidates, env_pipeline)
+  }
+
+  script_path <- spectre_find_script_path()
+  if (!is.na(script_path) && nzchar(script_path)) {
+    candidates <- c(candidates, dirname(dirname(script_path)))
+  }
+
+  if (!is.null(config_dir) && nzchar(config_dir)) {
+    candidates <- c(candidates, config_dir)
+  }
+
+  for (candidate in candidates) {
+    candidate <- normalizePath(candidate, winslash = "/", mustWork = FALSE)
+    if (
+      file.exists(file.path(candidate, "renv", "activate.R")) &&
+      file.exists(file.path(candidate, "scripts", "run_spectre_unified.R"))
+    ) {
+      return(candidate)
+    }
+  }
+
+  stop(
+    "Could not find the Spectre pipeline folder. ",
+    "Use the generated experiment runner or pass the pipeline folder as the second argument.",
+    call. = FALSE
+  )
+}
+
 spectre_blank <- function(x) {
   length(x) == 0 || is.na(x) || !nzchar(trimws(as.character(x)))
 }
@@ -118,11 +170,12 @@ spectre_qc_pairs <- function(values, name = "qc_plot_pairs") {
   })
 }
 
-spectre_activate_project <- function(project_dir) {
-  activate_script <- file.path(project_dir, "renv", "activate.R")
+spectre_activate_project <- function(pipeline_dir) {
+  activate_script <- file.path(pipeline_dir, "renv", "activate.R")
   if (!file.exists(activate_script)) {
     stop(
-      "renv/activate.R was not found. Please run SETUP first or restore the project files.",
+      "renv/activate.R was not found in the Spectre pipeline folder. ",
+      "Please run SETUP first or restore the project files.",
       call. = FALSE
     )
   }
@@ -131,6 +184,11 @@ spectre_activate_project <- function(project_dir) {
     RENV_CONFIG_CONSENT = "TRUE",
     RENV_CONFIG_SYNCHRONIZED_CHECK = "FALSE"
   )
+
+  old_wd <- getwd()
+  on.exit(setwd(old_wd), add = TRUE)
+  setwd(pipeline_dir)
+
   tryCatch(
     source(activate_script),
     error = function(e) {
@@ -171,7 +229,7 @@ spectre_read_config <- function(config_path) {
   values
 }
 
-spectre_build_settings <- function(values, project_dir) {
+spectre_build_settings <- function(values, project_dir, pipeline_dir = project_dir) {
   use_example <- spectre_bool(values, "use_example_data", default = TRUE)
 
   settings <- list(
@@ -216,9 +274,9 @@ spectre_build_settings <- function(values, project_dir) {
   )
 
   if (use_example) {
-    settings$data_dir <- "example_data/data"
-    settings$metadata_dir <- "example_data/metadata"
-    settings$output_dir <- "example_results"
+    settings$data_dir <- file.path(pipeline_dir, "example_data", "data")
+    settings$metadata_dir <- file.path(pipeline_dir, "example_data", "metadata")
+    settings$output_dir <- file.path(project_dir, "example_results")
     settings$phenok <- min(settings$phenok, 10)
     settings$umap_cells <- min(settings$umap_cells, 2000)
     settings$do_fcs_export <- FALSE
@@ -314,7 +372,9 @@ spectre_preflight <- function(cfg) {
 main <- function() {
   args <- commandArgs(trailingOnly = TRUE)
   config_path <- if (length(args) > 0) args[[1]] else "config.xlsx"
+  pipeline_arg <- if (length(args) > 1) args[[2]] else NULL
   project_dir <- spectre_find_project_dir(config_path)
+  pipeline_dir <- spectre_find_pipeline_dir(pipeline_arg, project_dir)
   config_path <- normalizePath(config_path, winslash = "/", mustWork = FALSE)
 
   if (!file.exists(config_path)) {
@@ -322,17 +382,18 @@ main <- function() {
   }
 
   setwd(project_dir)
-  spectre_activate_project(project_dir)
+  spectre_activate_project(pipeline_dir)
 
-  source(file.path(project_dir, "scripts", "help_functions.R"))
-  source(file.path(project_dir, "scripts", "run_spectre_unified.R"))
+  source(file.path(pipeline_dir, "scripts", "help_functions.R"))
+  source(file.path(pipeline_dir, "scripts", "run_spectre_unified.R"))
 
   values <- spectre_read_config(config_path)
-  settings <- spectre_build_settings(values, project_dir)
+  settings <- spectre_build_settings(values, project_dir, pipeline_dir)
   cfg <- normalise_settings(settings)
 
   message("Starting Spectre pipeline from config.xlsx")
-  message("Project: ", project_dir)
+  message("Pipeline: ", pipeline_dir)
+  message("Experiment: ", project_dir)
   message("Output: ", cfg$output_dir)
 
   spectre_preflight(cfg)
